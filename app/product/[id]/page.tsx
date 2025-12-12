@@ -26,12 +26,14 @@ export default function ProductPage({ params }: PageProps) {
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
 
+  // Redirect if not logged in
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/signin")
     }
   }, [user, isLoading, router])
 
+  // Load product
   useEffect(() => {
     if (!id) return
     const products = dataStore.getProducts()
@@ -43,6 +45,26 @@ export default function ProductPage({ params }: PageProps) {
       addToViewHistory(user.id, foundProduct.id)
     }
   }, [id, user])
+
+  // ❗ FIX: Jangan return null → tampilkan loading state
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground text-lg">Loading product...</p>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center text-muted-foreground">Product not found</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleAddToCart = () => {
     if (!user || !product) return
@@ -66,28 +88,12 @@ export default function ProductPage({ params }: PageProps) {
     router.push("/cart")
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("id-ID", {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(price)
-  }
-
-  if (isLoading || !user || !id) {
-    return null
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Product not found</p>
-        </div>
-      </div>
-    )
-  }
 
   const canBargain = product.category === "electronics" && !product.soldOut
   const maxDiscount = Math.floor(product.price * 0.2)
@@ -129,7 +135,9 @@ export default function ProductPage({ params }: PageProps) {
                 <h1 className="text-3xl font-bold">{product.name}</h1>
                 <Badge variant="outline">{product.category}</Badge>
               </div>
-              <p className="text-3xl font-bold text-primary">{formatPrice(product.price)}</p>
+              <p className="text-3xl font-bold text-primary">
+                {formatPrice(product.price)}
+              </p>
             </div>
 
             <Card>
@@ -163,10 +171,12 @@ export default function ProductPage({ params }: PageProps) {
                   <div className="flex items-start gap-3">
                     <MessageSquare className="h-5 w-5 text-accent mt-0.5" />
                     <div>
-                      <h3 className="font-semibold text-accent">Bargaining Available</h3>
+                      <h3 className="font-semibold text-accent">
+                        Bargaining Available
+                      </h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)}{" "}
-                        ({20}%) discount.
+                        Electronics are eligible for price negotiation. You can
+                        request up to {formatPrice(maxDiscount)} ({20}%) discount.
                       </p>
                     </div>
                   </div>
@@ -175,13 +185,23 @@ export default function ProductPage({ params }: PageProps) {
             )}
 
             <div className="space-y-3">
-              <Button onClick={handleAddToCart} disabled={product.soldOut} className="w-full" size="lg">
+              <Button
+                onClick={handleAddToCart}
+                disabled={product.soldOut}
+                className="w-full"
+                size="lg"
+              >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {product.soldOut ? "Sold Out" : "Add to Cart"}
               </Button>
 
               {canBargain && (
-                <Button asChild variant="outline" className="w-full bg-transparent" size="lg">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  size="lg"
+                >
                   <Link href={`/bargain/${product.id}`}>
                     <MessageSquare className="mr-2 h-5 w-5" />
                     Request Bargain
@@ -193,7 +213,11 @@ export default function ProductPage({ params }: PageProps) {
         </div>
 
         {/* Recommendations Section */}
-        <Recommendations products={allProducts} currentProductId={product.id} userId={user.id} />
+        <Recommendations
+          products={allProducts}
+          currentProductId={product.id}
+          userId={user.id}
+        />
       </div>
     </div>
   )
