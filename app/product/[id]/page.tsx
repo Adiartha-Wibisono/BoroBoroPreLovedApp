@@ -1,217 +1,62 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { dataStore } from "@/lib/data"
 import { useAuth } from "@/lib/auth-context"
-import { dataStore, type Product } from "@/lib/data"
-import { Navbar } from "@/components/layout/navbar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
-import { ShoppingCart, ArrowLeft, MessageSquare } from "lucide-react"
-import Link from "next/link"
-import { Recommendations, addToViewHistory } from "@/components/products/recommendations"
 
-interface PageProps {
-  params: { id: string }
-}
-
-export default function ProductPage({ params }: PageProps) {
-  const { id } = params
-  const { user, isLoading } = useAuth()
+export default function ProductDetailPage() {
+  const { id } = useParams()
   const router = useRouter()
-  const { toast } = useToast()
+  const { user, isLoading } = useAuth()
 
-  const [product, setProduct] = useState<Product | null>(null)
-  const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [pageLoading, setPageLoading] = useState(true)
+  const [product, setProduct] = useState(null)
 
-  // Redirect jika belum login
+  // Redirect ke login kalau belum login
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        router.push("/signin")
-      }
+    if (!isLoading && !user) {
+      router.push("/login")
     }
   }, [isLoading, user, router])
 
-  // Load product dari local datastore
+  // Load product dari local storage
   useEffect(() => {
     if (!id) return
 
     const products = dataStore.getProducts()
-    const found = products.find((p) => p.id === id) || null
+    const found = products.find((p) => p.id === id)
 
-    setProduct(found)
-    setAllProducts(products)
+    setProduct(found || null)
+  }, [id])
 
-    if (user && found) {
-      addToViewHistory(user.id, found.id)
-    }
+  // Loading auth  
+  if (isLoading) return <p>Checking user…</p>
 
-    setPageLoading(false)
-  }, [id, user])
-
-  // Jika masih loading → tampilkan loader (tidak return null)
-  if (pageLoading || isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading product...</p>
-      </div>
-    )
-  }
-
-  // Kalau produk tidak ditemukan
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Product not found</p>
-        </div>
-      </div>
-    )
-  }
-
-  const handleAddToCart = () => {
-    if (!user || !product) return
-
-    const cart = dataStore.getCart(user.id)
-    const existing = cart.find((item) => item.productId === product.id)
-
-    if (existing) {
-      existing.quantity += 1
-    } else {
-      cart.push({ productId: product.id, quantity: 1 })
-    }
-
-    dataStore.setCart(user.id, cart)
-
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    })
-
-    router.push("/cart")
-  }
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(price)
-
-  const canBargain = product.category === "electronics" && !product.soldOut
-  const maxDiscount = Math.floor(product.price * 0.2)
+  // Kalau product belum ketemu
+  if (!product) return <p>Product not found.</p>
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <Button asChild variant="ghost" className="mb-6">
-          <Link href="/explore">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Explore
-          </Link>
-        </Button>
+    <div style={{ padding: "20px" }}>
+      <h1>{product.name}</h1>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Product Image */}
-          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-            <Image
-              src={product.imageUrl || "/placeholder.svg"}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-            />
-            {product.soldOut && (
-              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                <Badge variant="secondary" className="text-2xl px-6 py-3">
-                  Sold Out
-                </Badge>
-              </div>
-            )}
-          </div>
+      <img
+        src={product.imageUrl}
+        alt={product.name}
+        style={{
+          width: "300px",
+          borderRadius: "10px",
+          marginTop: "15px"
+        }}
+      />
 
-          {/* Product Details */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-start justify-between gap-4 mb-2">
-                <h1 className="text-3xl font-bold">{product.name}</h1>
-                <Badge variant="outline">{product.category}</Badge>
-              </div>
-              <p className="text-3xl font-bold text-primary">{formatPrice(product.price)}</p>
-            </div>
+      <p style={{ marginTop: "10px" }}><strong>Price:</strong> Rp {product.price.toLocaleString()}</p>
+      <p><strong>Condition:</strong> {product.condition}</p>
+      <p><strong>Category:</strong> {product.category}</p>
+      <p style={{ marginTop: "10px" }}>{product.description}</p>
 
-            <Card>
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Description</h3>
-                  <p className="text-muted-foreground">{product.description}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Condition</p>
-                    <p className="font-medium">{product.condition}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Category</p>
-                    <p className="font-medium capitalize">{product.category}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Seller</p>
-                  <p className="font-medium">{product.sellerName}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {canBargain && (
-              <Card className="border-accent">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <MessageSquare className="h-5 w-5 text-accent mt-0.5" />
-                    <div>
-                      <h3 className="font-semibold text-accent">Bargaining Available</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You can request up to {formatPrice(maxDiscount)} ({20}%) discount.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="space-y-3">
-              <Button onClick={handleAddToCart} disabled={product.soldOut} className="w-full" size="lg">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                {product.soldOut ? "Sold Out" : "Add to Cart"}
-              </Button>
-
-              {canBargain && (
-                <Button asChild variant="outline" className="w-full bg-transparent" size="lg">
-                  <Link href={`/bargain/${product.id}`}>
-                    <MessageSquare className="mr-2 h-5 w-5" />
-                    Request Bargain
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <Recommendations
-          products={allProducts}
-          currentProductId={product.id}
-          userId={user?.id ?? ""}
-        />
-      </div>
+      <p style={{ marginTop: "20px", opacity: 0.6 }}>
+        Sold by: {product.sellerName}
+      </p>
     </div>
   )
 }
