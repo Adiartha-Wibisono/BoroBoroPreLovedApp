@@ -33,14 +33,19 @@ export default function ProductPage({ params }: PageProps) {
     }
   }, [user, isLoading, router])
 
-  // Load product data
+  // Load product data dengan debug logs
   useEffect(() => {
     if (!id) return
+
     const products = dataStore.getProducts()
-    setAllProducts(products)
+    console.log("All products:", products) // lihat semua produk
 
     const foundProduct = products.find((p) => p.id === String(id))
+    console.log("Product ID from URL:", id)
+    console.log("Found product:", foundProduct)
+
     setProduct(foundProduct || null)
+    setAllProducts(products)
 
     if (user && foundProduct) {
       addToViewHistory(user.id, foundProduct.id)
@@ -77,13 +82,12 @@ export default function ProductPage({ params }: PageProps) {
     }).format(price)
   }
 
-  // Loading state
   if (isLoading || !user || !id) {
     return <div className="min-h-screen bg-background" />
   }
 
-  // Product not found
   if (!product) {
+    console.log("Product not found for id:", id)
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
