@@ -27,9 +27,17 @@ export default function ProductPage({ params }: PageProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/signin")
-    }
+    if (!product) {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-center text-muted-foreground">Product not found</p>
+      </div>
+    </div>
+  )
+}
+
   }, [user, isLoading, router])
 
   useEffect(() => {
