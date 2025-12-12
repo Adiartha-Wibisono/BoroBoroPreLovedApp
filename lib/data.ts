@@ -61,7 +61,7 @@ export interface BargainRequest {
   createdAt: string
 }
 
-// Initialize data from localStorage or use defaults
+// === Utility untuk localStorage ===
 const getStorageData = <T,>(key: string, defaultValue: T): T => {
   if (typeof window === "undefined") return defaultValue
   try {
@@ -81,7 +81,7 @@ const setStorageData = <T,>(key: string, value: T): void => {
   }
 }
 
-// Sample products data
+// === Initial Products ===
 const initialProducts: Product[] = [
   {
     id: "1",
@@ -163,7 +163,7 @@ const initialProducts: Product[] = [
   },
 ]
 
-// Data management functions
+// === Data Store ===
 export const dataStore = {
   // Users
   getUsers: (): User[] => getStorageData("boroboro_users", []),
@@ -171,11 +171,10 @@ export const dataStore = {
 
   // Products
   getProducts: (): Product[] => {
-    const products = getStorageData("boroboro_products", initialProducts)
-    // Initialize if empty
-    if (products.length === 0) {
-      setStorageData("boroboro_products", initialProducts)
-      return initialProducts
+    let products = getStorageData<Product[]>("boroboro_products", null)
+    if (!products || products.length === 0) {
+      products = initialProducts
+      setStorageData("boroboro_products", products)
     }
     return products
   },
@@ -203,7 +202,7 @@ export const dataStore = {
   setBargainRequests: (bargains: BargainRequest[]) => setStorageData("boroboro_bargains", bargains),
 }
 
-// Validation helpers
+// === Validation helpers ===
 export const validateBinusianEmail = (email: string): boolean => {
   return email.endsWith("@binus.ac.id") || email.endsWith("@binus.edu")
 }
