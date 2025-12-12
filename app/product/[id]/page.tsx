@@ -26,22 +26,22 @@ export default function ProductPage({ params }: PageProps) {
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
 
-  // Redirect ke signin kalau belum login
+  // redirect ke signin jika belum login
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/signin")
     }
   }, [user, isLoading, router])
 
-  // Load product data dengan debug logs
   useEffect(() => {
     if (!id) return
 
     const products = dataStore.getProducts()
-    console.log("All products:", products) // lihat semua produk
+    console.log("All products:", products)
+    console.log("URL id:", id)
 
+    // pastikan id string
     const foundProduct = products.find((p) => p.id === String(id))
-    console.log("Product ID from URL:", id)
     console.log("Found product:", foundProduct)
 
     setProduct(foundProduct || null)
@@ -52,40 +52,11 @@ export default function ProductPage({ params }: PageProps) {
     }
   }, [id, user])
 
-  const handleAddToCart = () => {
-    if (!user || !product) return
-
-    const cart = dataStore.getCart(user.id)
-    const existingItem = cart.find((item) => item.productId === product.id)
-
-    if (existingItem) {
-      existingItem.quantity += 1
-    } else {
-      cart.push({ productId: product.id, quantity: 1 })
-    }
-
-    dataStore.setCart(user.id, cart)
-
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    })
-
-    router.push("/cart")
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
-
-  if (isLoading || !user || !id) {
+  if (isLoading || !user) {
     return <div className="min-h-screen bg-background" />
   }
 
+  // jika produk tidak ditemukan
   if (!product) {
     console.log("Product not found for id:", id)
     return (
@@ -107,6 +78,29 @@ export default function ProductPage({ params }: PageProps) {
   const canBargain = product.category === "electronics" && !product.soldOut
   const maxDiscount = Math.floor(product.price * 0.2)
 
+  const handleAddToCart = () => {
+    if (!user || !product) return
+
+    const cart = dataStore.getCart(user.id)
+    const existingItem = cart.find((item) => item.productId === product.id)
+    if (existingItem) {
+      existingItem.quantity += 1
+    } else {
+      cart.push({ productId: product.id, quantity: 1 })
+    }
+    dataStore.setCart(user.id, cart)
+
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart`,
+    })
+
+    router.push("/cart")
+  }
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price)
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -119,7 +113,6 @@ export default function ProductPage({ params }: PageProps) {
         </Button>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Product Image */}
           <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
             <Image
               src={product.imageUrl || "/placeholder.svg"}
@@ -140,7 +133,6 @@ export default function ProductPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Product Details */}
           <div className="space-y-6">
             <div>
               <div className="flex items-start justify-between gap-4 mb-2">
@@ -183,8 +175,7 @@ export default function ProductPage({ params }: PageProps) {
                     <div>
                       <h3 className="font-semibold text-accent">Bargaining Available</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)} ({20}%)
-                        discount.
+                        Electronics are eligible for price negotiation. Max discount: {formatPrice(maxDiscount)} ({20}%)
                       </p>
                     </div>
                   </div>
@@ -210,7 +201,6 @@ export default function ProductPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Recommendations Section */}
         <Recommendations products={allProducts} currentProductId={product.id} userId={user.id} />
       </div>
     </div>
