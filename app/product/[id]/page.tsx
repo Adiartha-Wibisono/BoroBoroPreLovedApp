@@ -36,7 +36,6 @@ export default function ProductPage({ params }: PageProps) {
   // Load product data
   useEffect(() => {
     if (!id) return
-
     const products = dataStore.getProducts()
     setAllProducts(products)
 
@@ -46,11 +45,6 @@ export default function ProductPage({ params }: PageProps) {
     if (user && foundProduct) {
       addToViewHistory(user.id, foundProduct.id)
     }
-
-    // Debug log
-    console.log("All Products:", products)
-    console.log("Current ID:", id)
-    console.log("Found Product:", foundProduct)
   }, [id, user])
 
   const handleAddToCart = () => {
@@ -185,8 +179,8 @@ export default function ProductPage({ params }: PageProps) {
                     <div>
                       <h3 className="font-semibold text-accent">Bargaining Available</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)}{" "}
-                        ({20}%) discount.
+                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)} ({20}%)
+                        discount.
                       </p>
                     </div>
                   </div>
