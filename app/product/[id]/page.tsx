@@ -25,30 +25,32 @@ export default function ProductPage({ params }: PageProps) {
   const { toast } = useToast()
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [pageLoading, setPageLoading] = useState(true)
 
-  // Redirect if user not logged in
+  // Redirect ke signin kalau belum login
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) {
-        router.push("/signin")
-      } else {
-        setPageLoading(false)
-      }
+    if (!isLoading && !user) {
+      router.push("/signin")
     }
   }, [user, isLoading, router])
 
-  // Load product
+  // Load product data
   useEffect(() => {
     if (!id) return
+
     const products = dataStore.getProducts()
-    const foundProduct = products.find((p) => p.id === id)
-    setProduct(foundProduct || null)
     setAllProducts(products)
+
+    const foundProduct = products.find((p) => p.id === String(id))
+    setProduct(foundProduct || null)
 
     if (user && foundProduct) {
       addToViewHistory(user.id, foundProduct.id)
     }
+
+    // Debug log
+    console.log("All Products:", products)
+    console.log("Current ID:", id)
+    console.log("Found Product:", foundProduct)
   }, [id, user])
 
   const handleAddToCart = () => {
@@ -81,21 +83,24 @@ export default function ProductPage({ params }: PageProps) {
     }).format(price)
   }
 
-  // ⛔ FIX: Jangan return null → Bikin blank white
-  if (pageLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading product...
-      </div>
-    )
+  // Loading state
+  if (isLoading || !user || !id) {
+    return <div className="min-h-screen bg-background" />
   }
 
+  // Product not found
   if (!product) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Product not found</p>
+          <Button asChild variant="ghost" className="mb-6">
+            <Link href="/explore">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Explore
+            </Link>
+          </Button>
+          <p className="text-center text-muted-foreground text-lg">Product not found</p>
         </div>
       </div>
     )
@@ -124,6 +129,9 @@ export default function ProductPage({ params }: PageProps) {
               fill
               className="object-cover"
               priority
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg"
+              }}
             />
             {product.soldOut && (
               <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
@@ -177,8 +185,8 @@ export default function ProductPage({ params }: PageProps) {
                     <div>
                       <h3 className="font-semibold text-accent">Bargaining Available</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. You can request up to{" "}
-                        {formatPrice(maxDiscount)} ({20}%) discount.
+                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)}{" "}
+                        ({20}%) discount.
                       </p>
                     </div>
                   </div>
