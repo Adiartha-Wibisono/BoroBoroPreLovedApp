@@ -31,15 +31,13 @@ export default function ProductDetailPage() {
 
       setProduct(found || null)
       setLoadingProduct(false)
-    }, 400) // biar ada efek loading
+    }, 400)
 
     return () => clearTimeout(timer)
   }, [id])
 
-  // Jika auth masih loading
   if (isLoading) return <div className="p-6">Checking user…</div>
 
-  // Loading product
   if (loadingProduct)
     return (
       <div className="p-6">
@@ -50,7 +48,6 @@ export default function ProductDetailPage() {
       </div>
     )
 
-  // Jika produk tidak ditemukan
   if (!product)
     return (
       <div className="p-6">
@@ -58,7 +55,6 @@ export default function ProductDetailPage() {
       </div>
     )
 
-  // Tambah ke cart
   const addToCart = () => {
     if (!user) return
 
@@ -107,14 +103,12 @@ export default function ProductDetailPage() {
         Seller: {product.sellerName}
       </p>
 
-      {/* Sold out badge */}
       {product.soldOut && (
         <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg font-medium">
           This product is sold out.
         </div>
       )}
 
-      {/* Add to cart button */}
       {!product.soldOut && (
         <button
           onClick={addToCart}
