@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { ShoppingCart, ArrowLeft, MessageSquare } from "lucide-react"
 import Link from "next/link"
-import { Recommendations, addToViewHistory } from "@/components/products/recommendations"
 
 interface PageProps {
   params: { id: string }
@@ -26,50 +25,31 @@ export default function ProductPage({ params }: PageProps) {
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
 
-  // redirect ke signin jika belum login
+  // Redirect if not logged in
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/signin")
-    }
+    if (!isLoading && !user) router.push("/signin")
   }, [user, isLoading, router])
 
+  // Load product
   useEffect(() => {
     if (!id) return
-
     const products = dataStore.getProducts()
+    console.log("params.id:", id)
     console.log("All products:", products)
-    console.log("URL id:", id)
-
-    // pastikan id string
     const foundProduct = products.find((p) => p.id === String(id))
     console.log("Found product:", foundProduct)
-
     setProduct(foundProduct || null)
     setAllProducts(products)
+  }, [id])
 
-    if (user && foundProduct) {
-      addToViewHistory(user.id, foundProduct.id)
-    }
-  }, [id, user])
+  if (isLoading || !user || !id) return null
 
-  if (isLoading || !user) {
-    return <div className="min-h-screen bg-background" />
-  }
-
-  // jika produk tidak ditemukan
   if (!product) {
-    console.log("Product not found for id:", id)
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <Button asChild variant="ghost" className="mb-6">
-            <Link href="/explore">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Explore
-            </Link>
-          </Button>
-          <p className="text-center text-muted-foreground text-lg">Product not found</p>
+          <p className="text-center text-muted-foreground">Product not found</p>
         </div>
       </div>
     )
@@ -80,21 +60,12 @@ export default function ProductPage({ params }: PageProps) {
 
   const handleAddToCart = () => {
     if (!user || !product) return
-
     const cart = dataStore.getCart(user.id)
     const existingItem = cart.find((item) => item.productId === product.id)
-    if (existingItem) {
-      existingItem.quantity += 1
-    } else {
-      cart.push({ productId: product.id, quantity: 1 })
-    }
+    if (existingItem) existingItem.quantity += 1
+    else cart.push({ productId: product.id, quantity: 1 })
     dataStore.setCart(user.id, cart)
-
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    })
-
+    toast({ title: "Added to cart", description: `${product.name} added to cart` })
     router.push("/cart")
   }
 
@@ -114,16 +85,7 @@ export default function ProductPage({ params }: PageProps) {
 
         <div className="grid md:grid-cols-2 gap-8">
           <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-            <Image
-              src={product.imageUrl || "/placeholder.svg"}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-              onError={(e) => {
-                e.currentTarget.src = "/placeholder.svg"
-              }}
-            />
+            <Image src={product.imageUrl || "/placeholder.svg"} alt={product.name} fill className="object-cover" priority />
             {product.soldOut && (
               <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                 <Badge variant="secondary" className="text-2xl px-6 py-3">
@@ -148,7 +110,6 @@ export default function ProductPage({ params }: PageProps) {
                   <h3 className="font-semibold mb-2">Description</h3>
                   <p className="text-muted-foreground">{product.description}</p>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Condition</p>
@@ -159,7 +120,6 @@ export default function ProductPage({ params }: PageProps) {
                     <p className="font-medium capitalize">{product.category}</p>
                   </div>
                 </div>
-
                 <div>
                   <p className="text-sm text-muted-foreground">Seller</p>
                   <p className="font-medium">{product.sellerName}</p>
@@ -169,15 +129,13 @@ export default function ProductPage({ params }: PageProps) {
 
             {canBargain && (
               <Card className="border-accent">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-3">
-                    <MessageSquare className="h-5 w-5 text-accent mt-0.5" />
-                    <div>
-                      <h3 className="font-semibold text-accent">Bargaining Available</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. Max discount: {formatPrice(maxDiscount)} ({20}%)
-                      </p>
-                    </div>
+                <CardContent className="p-6 flex items-start gap-3">
+                  <MessageSquare className="h-5 w-5 text-accent mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-accent">Bargaining Available</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Electronics eligible for negotiation. Max discount {formatPrice(maxDiscount)} (20%).
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -200,8 +158,6 @@ export default function ProductPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-
-        <Recommendations products={allProducts} currentProductId={product.id} userId={user.id} />
       </div>
     </div>
   )
