@@ -23,43 +23,66 @@ export default function ProductPage({ params }: PageProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [pageLoading, setPageLoading] = useState(true)
 
+  // Redirect jika belum login
   useEffect(() => {
-    if (!product) {
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center text-muted-foreground">Product not found</p>
-      </div>
-    </div>
-  )
-}
+    if (!isLoading) {
+      if (!user) {
+        router.push("/signin")
+      }
+    }
+  }, [isLoading, user, router])
 
-  }, [user, isLoading, router])
-
+  // Load product dari local datastore
   useEffect(() => {
     if (!id) return
+
     const products = dataStore.getProducts()
-    const foundProduct = products.find((p) => p.id === id)
-    setProduct(foundProduct || null)
+    const found = products.find((p) => p.id === id) || null
+
+    setProduct(found)
     setAllProducts(products)
 
-    if (user && foundProduct) {
-      addToViewHistory(user.id, foundProduct.id)
+    if (user && found) {
+      addToViewHistory(user.id, found.id)
     }
+
+    setPageLoading(false)
   }, [id, user])
+
+  // Jika masih loading → tampilkan loader (tidak return null)
+  if (pageLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading product...</p>
+      </div>
+    )
+  }
+
+  // Kalau produk tidak ditemukan
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center text-muted-foreground">Product not found</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleAddToCart = () => {
     if (!user || !product) return
 
     const cart = dataStore.getCart(user.id)
-    const existingItem = cart.find((item) => item.productId === product.id)
+    const existing = cart.find((item) => item.productId === product.id)
 
-    if (existingItem) {
-      existingItem.quantity += 1
+    if (existing) {
+      existing.quantity += 1
     } else {
       cart.push({ productId: product.id, quantity: 1 })
     }
@@ -74,28 +97,12 @@ export default function ProductPage({ params }: PageProps) {
     router.push("/cart")
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("id-ID", {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(price)
-  }
-
-  if (isLoading || !user || !id) {
-    return null
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-muted-foreground">Product not found</p>
-        </div>
-      </div>
-    )
-  }
 
   const canBargain = product.category === "electronics" && !product.soldOut
   const maxDiscount = Math.floor(product.price * 0.2)
@@ -173,8 +180,7 @@ export default function ProductPage({ params }: PageProps) {
                     <div>
                       <h3 className="font-semibold text-accent">Bargaining Available</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Electronics are eligible for price negotiation. You can request up to {formatPrice(maxDiscount)}{" "}
-                        ({20}%) discount.
+                        You can request up to {formatPrice(maxDiscount)} ({20}%) discount.
                       </p>
                     </div>
                   </div>
@@ -200,8 +206,11 @@ export default function ProductPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Recommendations Section */}
-        <Recommendations products={allProducts} currentProductId={product.id} userId={user.id} />
+        <Recommendations
+          products={allProducts}
+          currentProductId={product.id}
+          userId={user?.id ?? ""}
+        />
       </div>
     </div>
   )
